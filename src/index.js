@@ -11,18 +11,76 @@ const users = [];
 
 function checksExistsUserAccount(request, response, next) {
   // Complete aqui
+  const { username } = request.headers;
+
+  const user = users.find((user) => user.username === username );
+
+  if(!user) {
+    return response.status(404).json({error: 'usuário não existe!'});
+  }
+
+  request.user = user;
+
+  next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
   // Complete aqui
+  const { user } = request;
+
+  const limitTodos = user.todos.length;
+
+  if(user.pro) {
+    next();
+  }
+  if( !user.pro && (limitTodos < 10)) {
+    next();
+  } else {
+    response.status(403).json({error: 'You already have 10 todos!'});
+  }
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const { username } = request.headers;
+  const { id } = request.params;
+
+  const user = users.find((user) => user.username === username );
+ 
+  if(!user) {
+    return response.status(404).json({error:''});
+  }
+
+  if(!validate(id)){
+    return response.status(400).json({error:''});
+  } 
+
+  const todo = user.todos.find((todo) => todo.id === id );
+  
+  if(!todo) {
+      return response.status(404).json({error: ''});
+  }
+
+ 
+  request.user = user;
+  request.todo = todo;
+  
+  return next();
+
 }
 
 function findUserById(request, response, next) {
   // Complete aqui
+  const { id } = request.params;
+
+  const user = users.find((user) => user.id === id);
+
+  if(!user) {
+    return response.status(404).json({error:''})
+  }
+
+  request.user = user;
+
+  return next();
 }
 
 app.post('/users', (request, response) => {
@@ -107,9 +165,9 @@ app.patch('/todos/:id/done', checksTodoExists, (request, response) => {
 });
 
 app.delete('/todos/:id', checksExistsUserAccount, checksTodoExists, (request, response) => {
-  const { user, todo } = request;
+  const { user, todo} = request;
 
-  const todoIndex = user.todos.indexOf(todo);
+  const todoIndex = user.todos.findIndex((todo) => todo.id === id);
 
   if (todoIndex === -1) {
     return response.status(404).json({ error: 'Todo not found' });
